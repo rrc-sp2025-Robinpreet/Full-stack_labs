@@ -1,0 +1,10 @@
+.footer {
+    box-sizing: border-box;
+    background-color: lightgray;
+    text-align: end;
+    position: absolute;
+    width: 95%;
+    margin: auto;
+    bottom: 0px;
+    padding: 0 0.5rem;
+}
