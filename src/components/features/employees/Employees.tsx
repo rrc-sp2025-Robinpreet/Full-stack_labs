@@ -1,58 +1,41 @@
+
 import { useState } from "react";
-import departmentData from "../../../data/departments";
-import styles from "./Employees.module.css";
+import { getDepartments } from "../../../repositories/employeeRepo";
 import { EmployeeForm } from "./EmployeeForm";
+import styles from "./Employees.module.css";
 
 export function Employees() {
-    const [departments, setDepartments] = useState(departmentData);
+    // Initialize display state using repository data
+    const [departments, setDepartments] = useState(
+        () => getDepartments()
+    );
 
-    const addEmployee = (
-        firstName: string,
-        lastName: string,
-        departmentName: string
-    ) => {
-        setDepartments(currentDepartments =>
-            currentDepartments.map(department => {
-                if (department.name === departmentName) {
-                    return {
-                        ...department,
-                        employees: [
-                            ...department.employees,
-                            { firstName, lastName }
-                        ]
-                    };
-                }
-
-                return department;
-            })
-        );
+    // Refresh the displayed data after an employee is added
+    const refreshEmployees = () => {
+        setDepartments(getDepartments());
     };
-
-    const departmentListElement = departments.map(department => (
-        <section key={department.name}>
-            <h2>{department.name}</h2>
-
-            <ul className={styles.employees}>
-                {department.employees.map((employee, index) => (
-                    <li key={index}>
-                        {employee.firstName} {employee.lastName}
-                    </li>
-                ))}
-            </ul>
-        </section>
-    ));
 
     return (
         <main>
             <section>
                 <h1>Employees by Department</h1>
-                {departmentListElement}
+
+                {departments.map(department => (
+                    <section key={department.name}>
+                        <h2>{department.name}</h2>
+
+                        <ul className={styles.employees}>
+                            {department.employees.map((employee, index) => (
+                                <li key={index}>
+                                    {employee.firstName} {employee.lastName}
+                                </li>
+                            ))}
+                        </ul>
+                    </section>
+                ))}
             </section>
 
-            <EmployeeForm
-                departments={departments}
-                onAddEmployee={addEmployee}
-            />
+            <EmployeeForm onEmployeeAdded={refreshEmployees} />
         </main>
     );
 }

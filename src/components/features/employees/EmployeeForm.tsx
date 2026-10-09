@@ -1,68 +1,60 @@
-import { useState } from "react";
-import type { Department } from "../../../types/department";
+import { getDepartments } from "../../../repositories/employeeRepo";
+import type { FormEvent } from "react";
+import { useFormInput } from "../../../hooks/useFormInput";
+import {
+    addEmployee,
+    validateEmployee
+} from "../../../services/employeeService";
 
 type EmployeeFormProps = {
-    departments: Department[];
-    onAddEmployee: (
-        firstName: string,
-        lastName: string,
-        department: string
-    ) => void;
+    onEmployeeAdded: () => void;
 };
 
-export function EmployeeForm({
-    departments,
-    onAddEmployee
-}: EmployeeFormProps) {
-    const [firstName, setFirstName] = useState("");
-    const [lastName, setLastName] = useState("");
-    const [department, setDepartment] = useState("");
-    const [errors, setErrors] = useState<string[]>([]);
+export function EmployeeForm({ onEmployeeAdded }: EmployeeFormProps) {
+    const firstName = useFormInput();
+    const lastName = useFormInput();
+    const department = useFormInput();
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        // Clear old validation messages
-        const validationErrors: string[] = [];
-
-        // Validate first name
-        if (firstName.trim().length < 3) {
-            validationErrors.push(
-                "First name must be at least 3 characters."
-            );
-        }
-
-        // Validate department
-        const departmentExists = departments.some(
-            d => d.name === department
+        const errors = validateEmployee(
+            firstName.value,
+            department.value,
+            getDepartments()
         );
 
-        if (!departmentExists) {
-            validationErrors.push(
-                "Please select a valid department."
-            );
-        }
+        const firstNameValid = firstName.validate(
+            () => errors.filter(error => error.includes("First name"))
+        );
 
-        // Stop if validation failed
-        if (validationErrors.length > 0) {
-            setErrors(validationErrors);
+        const departmentValid = department.validate(
+            () => errors.filter(error => error.includes("department"))
+        );
+
+        if (!firstNameValid || !departmentValid) {
             return;
         }
 
-        // Clear validation messages
-        setErrors([]);
+        try {
+            addEmployee(
+                firstName.value,
+                lastName.value,
+                department.value
+            );
 
-        // Add employee
-        onAddEmployee(
-            firstName.trim(),
-            lastName.trim(),
-            department
-        );
+            firstName.reset();
+            lastName.reset();
+            department.reset();
 
-        // Clear form
-        setFirstName("");
-        setLastName("");
-        setDepartment("");
+            onEmployeeAdded();
+        } catch (error) {
+            department.validate(() => [
+                error instanceof Error
+                    ? error.message
+                    : "Unable to add employee."
+            ]);
+        }
     };
 
     return (
@@ -70,72 +62,47 @@ export function EmployeeForm({
             <h2>Add Employee</h2>
 
             <form onSubmit={handleSubmit}>
-
                 <div>
-                    <label htmlFor="firstName">
-                        First Name:
-                    </label>
-
+                    <label htmlFor="firstName">First Name:</label>
                     <input
-                        type="text"
                         id="firstName"
-                        value={firstName}
-                        onChange={e => setFirstName(e.target.value)}
+                        value={firstName.value}
+                        onChange={e => firstName.setValue(e.target.value)}
                     />
+                    {firstName.messages.map((message, index) => (
+                        <p key={index}>{message}</p>
+                    ))}
                 </div>
 
                 <div>
-                    <label htmlFor="lastName">
-                        Last Name:
-                    </label>
-
+                    <label htmlFor="lastName">Last Name:</label>
                     <input
-                        type="text"
                         id="lastName"
-                        value={lastName}
-                        onChange={e => setLastName(e.target.value)}
+                        value={lastName.value}
+                        onChange={e => lastName.setValue(e.target.value)}
                     />
                 </div>
 
                 <div>
-                    <label htmlFor="department">
-                        Department:
-                    </label>
-
+                    <label htmlFor="department">Department:</label>
                     <select
                         id="department"
-                        value={department}
-                        onChange={e => setDepartment(e.target.value)}
+                        value={department.value}
+                        onChange={e => department.setValue(e.target.value)}
                     >
-                        <option value="">
-                            Select Department
-                        </option>
-
-                        {departments.map(d => (
-                            <option
-                                key={d.name}
-                                value={d.name}
-                            >
+                        <option value="">Select Department</option>
+                        {getDepartments().map(d => (
+                            <option key={d.name} value={d.name}>
                                 {d.name}
                             </option>
                         ))}
                     </select>
+                    {department.messages.map((message, index) => (
+                        <p key={index}>{message}</p>
+                    ))}
                 </div>
 
-                {errors.length > 0 && (
-                    <ul>
-                        {errors.map((error, index) => (
-                            <li key={index}>
-                                {error}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-
-                <button type="submit">
-                    Add Employee
-                </button>
-
+                <button type="submit">Add Employee</button>
             </form>
         </section>
     );
